@@ -44,7 +44,15 @@ func execute() error {
 }
 
 func httpHander(conn net.Conn) error {
-	defer conn.Close()
+	localAddr := conn.LocalAddr()
+	remoteAddr := conn.RemoteAddr()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("failed to close: %s %s", remoteAddr.Network(), remoteAddr.String())
+		}
+		log.Printf("%s %s is Closed...\n", remoteAddr.Network(), remoteAddr.String())
+	}()
+	log.Printf("LocalAddr: %s %s, RemoteAddr(): %s %s\n", localAddr.Network(), localAddr.String(), remoteAddr.Network(), remoteAddr.String())
 
 	// Wrap the connection in a buffered reader.
 	reader := bufio.NewReader(conn)
