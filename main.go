@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -70,6 +72,7 @@ func httpHander(conn net.Conn) error {
 		break
 	}
 
+	// Parse the headers and body
 	headers := make([]string, 0)
 	curCont := req
 	for {
@@ -80,17 +83,40 @@ func httpHander(conn net.Conn) error {
 			return err
 		}
 
-		headers = append(headers, line)
 		curCont = curCont[len(line):]
 		if line == "\r\n" {
 			break
 		}
+		headers = append(headers, line)
 	}
 
+	headersMap := make(map[string]string, 0)
+	for _, v := range headers[1:] {
+		log.Println(v)
+		kv := strings.Split(v, ":")
+		headersMap[kv[0]] = strings.TrimSpace(kv[1])
+	}
+
+	// Method, path and version of HTTP.
+	// example:
+	// Get /mysite/index.html HTTP/1.1\r\n
+	// Host: 10.101.101.10\r\n
+	// Accept: */*\r\n
+	// \r\n
+	startLine := headers[0]
+	arrStartLine := strings.Fields(startLine)
+	method := arrStartLine[0]
+	path := arrStartLine[1]
+	version := arrStartLine[2]
+	log.Println(method)
+	log.Println(path)
+	log.Println(version)
+
+	h, _ := json.Marshal(headersMap)
+	log.Println(string(h))
+	// print body.
 	body := string(curCont)
 	log.Println(body)
-
-	log.Println(headers)
 
 	conn.Write([]byte("hello world!"))
 	return nil
