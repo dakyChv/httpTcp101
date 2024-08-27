@@ -92,7 +92,6 @@ func httpHander(conn net.Conn) error {
 
 	headersMap := make(map[string]string, 0)
 	for _, v := range headers[1:] {
-		log.Println(v)
 		kv := strings.Split(v, ":")
 		headersMap[kv[0]] = strings.TrimSpace(kv[1])
 	}
@@ -103,14 +102,15 @@ func httpHander(conn net.Conn) error {
 	// Host: 10.101.101.10\r\n
 	// Accept: */*\r\n
 	// \r\n
+	var (
+		method, path, version string
+		arrStartLine          []string
+	)
 	startLine := headers[0]
-	arrStartLine := strings.Fields(startLine)
-	method := arrStartLine[0]
-	path := arrStartLine[1]
-	version := arrStartLine[2]
-	log.Println(method)
-	log.Println(path)
-	log.Println(version)
+	arrStartLine = strings.Fields(startLine)
+	method = arrStartLine[0]
+	path = arrStartLine[1]
+	version = arrStartLine[2]
 
 	h, _ := json.Marshal(headersMap)
 	log.Println(string(h))
@@ -118,6 +118,29 @@ func httpHander(conn net.Conn) error {
 	body := string(curCont)
 	log.Println(body)
 
-	conn.Write([]byte("hello world!"))
+	// Response.
+	// Example:
+	//
+	// 	HTTP/1.1 200 OK\r\n
+	// Content-Length: 55\r\n
+	// Content-Type: text/html\r\n
+	// Last-Modified: Wed, 12 Aug 1998 15:03:50 GMT\r\n
+	// Accept-Ranges: bytes\r\n
+	// ETag: “04f97692cbd1:377”\r\n
+	// Date: Thu, 19 Jun 2008 19:29:07 GMT\r\n
+	// \r\n
+	// <55-character response>
+
+	msg := []byte(fmt.Sprintf(`{"request header":%s,"startLine":{"method":%q,"path":%q,"version":%q}}`, h, method, path, version))
+	response :=
+		"HTTP/1.1 200 OK\r\n" +
+			"Content-Type: application/json\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n", len(msg)) +
+			"\r\n" +
+			string(msg)
+
+	// Reply.
+	conn.Write([]byte(response))
+
 	return nil
 }
