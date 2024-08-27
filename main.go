@@ -69,3 +69,31 @@ func execute() error {
 		return nil
 	}
 }
+
+func httpHander(conn net.Conn) {
+	// Wrap the connection in a buffered reader.
+	reader := bufio.NewReader(conn)
+
+	req := make([]byte, 0, 4)
+	for {
+		// starting at the end of the current slice b and extending to its full capacity.
+		n, err := reader.Read(req[len(req):cap(req)])
+		// resizes the slice b to include the bytes that were just read.
+		req = req[:len(req)+n]
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			log.Printf("failed to http handler: %v\n", err)
+			break
+		}
+
+		if len(req) == cap(req) {
+			// Add more capacity (let append pick how much).
+			// and unchanged the original length.
+			req = append(req, 0)[:len(req)]
+			continue
+		}
+		break
+	}
+}
